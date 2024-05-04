@@ -10,16 +10,20 @@ use std::{
 };
 use thiserror::Error;
 
+const CRLF_LEN: usize = 2;
+
 #[enum_dispatch]
 pub trait RespEncode {
     fn encode(self) -> Vec<u8>;
 }
 
 pub trait RespDecode: Sized {
-    fn decode(buf: BytesMut) -> Result<Self, RespError>;
+    const PREFIX: &'static str;
+    fn decode(buf: &mut BytesMut) -> Result<Self, RespError>;
+    fn expect_length(buf: &[u8]) -> Result<usize, RespError>;
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum RespError {
     #[error("Invalid Frame:{0}")]
     InvalidFrame(String),
@@ -29,6 +33,10 @@ pub enum RespError {
     InvalidFrameLength(isize),
     #[error("Frame is not complete")]
     NotComplete,
+    #[error("Parse int error")]
+    ParseIntError(#[from] std::num::ParseIntError),
+    #[error("Parse float error")]
+    ParseFloatError(#[from] std::num::ParseFloatError),
 }
 
 #[enum_dispatch(RespEncode)]
@@ -48,7 +56,7 @@ pub enum RespFrame {
     Set(RespSet),
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct SimpleString(String);
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]

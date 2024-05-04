@@ -147,20 +147,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple_string() {
+    fn test_simple_string_encode() {
         let s: RespFrame = SimpleString::new("OK").into();
         assert_eq!(s.encode(), b"+OK\r\n");
     }
 
     #[test]
-    fn test_simple_error() -> anyhow::Result<()> {
+    fn test_simple_error_encode() -> anyhow::Result<()> {
         let s: RespFrame = SimpleError::new("Error Message").into();
         assert_eq!(s.encode(), b"-Error Message\r\n");
         Ok(())
     }
 
     #[test]
-    fn test_integer() {
+    fn test_integer_encode() {
         let s: RespFrame = 100.into();
         assert_eq!(s.encode(), b":+100\r\n");
         let s: RespFrame = (-100).into();
@@ -168,19 +168,19 @@ mod tests {
     }
 
     #[test]
-    fn test_bulk_string() {
+    fn test_bulk_string_encode() {
         let s: RespFrame = BulkString::new("hello".as_bytes().to_vec()).into();
         assert_eq!(s.encode(), b"$5\r\nhello\r\n");
     }
 
     #[test]
-    fn test_null_bulk_string() {
+    fn test_null_bulk_string_encode() {
         let s: RespFrame = RespNullBulkString.into();
         assert_eq!(s.encode(), b"$-1\r\n");
     }
 
     #[test]
-    fn test_array() {
+    fn test_array_encode() {
         let s: RespFrame = RespArray::new(vec![
             BulkString::new("get").into(),
             BulkString::new("hello").into(),
@@ -194,19 +194,19 @@ mod tests {
     }
 
     #[test]
-    fn test_null_array() {
+    fn test_null_array_encode() {
         let s: RespFrame = RespNullArray.into();
         assert_eq!(s.encode(), b"*-1\r\n");
     }
 
     #[test]
-    fn test_null() {
+    fn test_null_encode() {
         let s: RespFrame = RespNull.into();
         assert_eq!(s.encode(), b"_\r\n");
     }
 
     #[test]
-    fn test_boolean() {
+    fn test_boolean_encode() {
         let s: RespFrame = true.into();
         assert_eq!(s.encode(), b"#t\r\n");
         let s: RespFrame = false.into();
@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn test_double() {
+    fn test_double_encode() {
         let s: RespFrame = 123.456.into();
         assert_eq!(s.encode(), b",+123.456\r\n");
         let s: RespFrame = (-123.456).into();
