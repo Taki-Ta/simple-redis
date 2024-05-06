@@ -83,8 +83,10 @@ impl RespDecode for RespFrame {
                 let frame = RespSet::decode(buf)?;
                 Ok(frame.into())
             }
+            //when receive none, return NotComplete error
+            None => Err(RespError::NotComplete),
             _ => Err(RespError::InvalidFrameType(format!(
-                "expect_length: unknown frame type: {:?}",
+                "unknown frame type: {:?}",
                 buf
             ))),
         }
@@ -332,7 +334,7 @@ fn extract_simple_frame_data(buf: &[u8], prefix: &str) -> Result<usize, RespErro
     }
     if !buf.starts_with(prefix.as_bytes()) {
         return Err(RespError::InvalidFrameType(format!(
-            "Invalid Frame Type: expect1111{}, fount:{:?}",
+            "Invalid Frame Type: expected{}, fount:{:?}",
             prefix, buf
         )));
     }

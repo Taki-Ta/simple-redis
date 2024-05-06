@@ -23,14 +23,12 @@ pub trait RespDecode: Sized {
     fn expect_length(buf: &[u8]) -> Result<usize, RespError>;
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum RespError {
     #[error("Invalid Frame:{0}")]
     InvalidFrame(String),
     #[error("Invalid Frame Type:{0}")]
     InvalidFrameType(String),
-    #[error("Invalid Frame Length:{0}")]
-    InvalidFrameLength(isize),
     #[error("Frame is not complete")]
     NotComplete,
     #[error("Parse int error")]
@@ -63,13 +61,13 @@ pub struct SimpleString(String);
 pub struct SimpleError(String);
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct BulkString(Vec<u8>);
+pub struct BulkString(pub(crate) Vec<u8>);
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct RespNullBulkString;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
-pub struct RespArray(Vec<RespFrame>);
+pub struct RespArray(pub(crate) Vec<RespFrame>);
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct RespNullArray;
@@ -176,5 +174,11 @@ impl Default for RespMap {
 impl RespSet {
     pub fn new(s: impl Into<Vec<RespFrame>>) -> Self {
         RespSet(s.into())
+    }
+}
+
+impl AsRef<[u8]> for BulkString {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
     }
 }
