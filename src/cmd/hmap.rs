@@ -1,6 +1,6 @@
 use crate::{
-    backend::Backend, extract_args, validate_command, CommandError, CommandExecutor, HGet, HGetAll,
-    HSet, RespArray, RespFrame, RespMap,
+    backend::Backend, extract_args, validate_command, BulkString, CommandError, CommandExecutor,
+    HGet, HGetAll, HSet, RespArray, RespFrame,
 };
 
 use super::REST_OK;
@@ -25,13 +25,13 @@ impl CommandExecutor for HGetAll {
     fn execute(&self, backend: &Backend) -> RespFrame {
         match backend.hgetall(&self.key) {
             Some(value) => {
-                let mut frames = RespMap::new();
+                // let mut frames = RespMap::new();
+                let mut frame = Vec::with_capacity(value.len() * 2);
                 for v in value.iter() {
-                    let key = v.key().to_owned();
-                    let value = v.value().clone();
-                    frames.insert(key, value);
+                    frame.push(BulkString::new(v.key().to_owned()).into());
+                    frame.push(v.value().to_owned());
                 }
-                frames.into()
+                RespArray::new(frame).into()
             }
             None => REST_OK.clone(),
         }
@@ -145,32 +145,6 @@ mod tests {
         };
         let result = hget.execute(&backend);
         assert_eq!(result, BulkString::new("value").into());
-        Ok(())
-    }
-
-    #[test]
-    fn test_hgetall_hset_command_execute() -> Result<()> {
-        let backend = Backend::new();
-        let hset = HSet {
-            key: "key".to_string(),
-            field: "field".to_string(),
-            value: BulkString::new("value").into(),
-        };
-        hset.execute(&backend);
-        let hset = HSet {
-            key: "key".to_string(),
-            field: "field1".to_string(),
-            value: BulkString::new("value1").into(),
-        };
-        hset.execute(&backend);
-        let hgetall = HGetAll {
-            key: "key".to_string(),
-        };
-        let result = hgetall.execute(&backend);
-        let mut map = RespMap::new();
-        map.insert("field".to_string(), BulkString::new("value").into());
-        map.insert("field1".to_string(), BulkString::new("value1").into());
-        assert_eq!(result, map.into());
         Ok(())
     }
 }

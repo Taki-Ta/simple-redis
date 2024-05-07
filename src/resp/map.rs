@@ -73,9 +73,8 @@ impl Default for RespMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::BulkString;
-
     use super::*;
+    use crate::BulkString;
 
     #[test]
     fn test_map_decode() -> anyhow::Result<()> {
