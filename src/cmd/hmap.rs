@@ -1,15 +1,39 @@
 use crate::{
     backend::Backend, extract_args, validate_command, BulkString, CommandError, CommandExecutor,
-    HGet, HGetAll, HSet, RespArray, RespFrame,
+    RespArray, RespFrame,
 };
 
-use super::REST_OK;
+use super::{REST_NIL, REST_OK};
+
+#[derive(Debug)]
+pub struct HGet {
+    key: String,
+    field: String,
+}
+
+#[derive(Debug)]
+pub struct HSet {
+    key: String,
+    field: String,
+    value: RespFrame,
+}
+
+#[derive(Debug)]
+pub struct HGetAll {
+    key: String,
+}
+
+#[derive(Debug)]
+pub struct HMGet {
+    key: String,
+    fields: Vec<String>,
+}
 
 impl CommandExecutor for HGet {
     fn execute(&self, backend: &Backend) -> RespFrame {
         match backend.hget(&self.key, &self.field) {
             Some(value) => value,
-            None => REST_OK.clone(),
+            None => REST_NIL.clone(),
         }
     }
 }
@@ -35,6 +59,19 @@ impl CommandExecutor for HGetAll {
             }
             None => REST_OK.clone(),
         }
+    }
+}
+
+impl CommandExecutor for HMGet {
+    fn execute(&self, backend: &Backend) -> RespFrame {
+        let mut frame = Vec::with_capacity(self.fields.len());
+        for field in self.fields.iter() {
+            match backend.hget(&self.key, field) {
+                Some(value) => frame.push(value),
+                None => frame.push(REST_NIL.clone()),
+            }
+        }
+        RespArray::new(frame).into()
     }
 }
 
@@ -90,6 +127,44 @@ impl TryFrom<RespArray> for HGetAll {
     }
 }
 
+impl TryFrom<RespArray> for HMGet {
+    type Error = CommandError;
+
+    fn try_from(value: RespArray) -> Result<Self, Self::Error> {
+        if value.len() < 3 {
+            return Err(CommandError::InvalidArgument(
+                "ERR wrong number of arguments for command".to_string(),
+            ));
+        }
+        if let RespFrame::BulkString(ref cmd) = value.first().unwrap() {
+            if cmd.as_ref() != b"hmget" {
+                return Err(CommandError::InvalidCommand(format!(
+                    "expected hmget got {}",
+                    String::from_utf8_lossy(cmd.as_ref())
+                )));
+            }
+        }
+        let mut args = extract_args(value)?.into_iter();
+        let key = args.next();
+        let fields: Vec<String> = args
+            .filter_map(|v| {
+                if let RespFrame::BulkString(key) = v {
+                    Some(String::from_utf8_lossy(&key).to_string())
+                } else {
+                    None
+                }
+            })
+            .collect();
+        match key {
+            Some(RespFrame::BulkString(key)) => Ok(HMGet {
+                key: String::from_utf8_lossy(&key).to_string(),
+                fields,
+            }),
+            _ => Err(CommandError::InvalidArgument("Invalid key".to_string())),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,6 +205,20 @@ mod tests {
     }
 
     #[test]
+    fn test_hmget_command_tryfrom() -> Result<()> {
+        let mut buf = BytesMut::new();
+        buf.extend_from_slice(
+            b"*4\r\n$5\r\nhmget\r\n$3\r\nkey\r\n$6\r\nfield1\r\n$6\r\nfield2\r\n",
+        );
+        let frames = RespArray::decode(&mut buf)?;
+        let hset = HMGet::try_from(frames)?;
+        let fields = vec!["field1".to_string(), "field2".to_string()];
+        assert_eq!(hset.key, "key");
+        assert_eq!(hset.fields, fields);
+        Ok(())
+    }
+
+    #[test]
     fn test_hget_hset_command_execute() -> Result<()> {
         let backend = Backend::new();
         let hset = HSet {
@@ -147,4 +236,33 @@ mod tests {
         assert_eq!(result, BulkString::new("value").into());
         Ok(())
     }
+
+    // #[test]
+    // fn test_hmget_hset_command_execute(){
+    //     let backend = Backend::new();
+    //     let hset = HSet {
+    //         key: "key".to_string(),
+    //         field: "field".to_string(),
+    //         value: BulkString::new("value").into(),
+    //     };
+    //     let result = hset.execute(&backend);
+    //     assert_eq!(result, REST_OK.clone());
+
+    //     let hset = HSet {
+    //         key: "key".to_string(),
+    //         field: "field1".to_string(),
+    //         value: BulkString::new("value1").into(),
+    //     };
+    //     let result = hset.execute(&backend);
+    //     assert_eq!(result, REST_OK.clone());
+
+    //     let HMGet=
+    //     let hget = HMGet {
+    //         key: "key".to_string(),
+    //         field: "field".to_string(),
+    //     };
+    //     let result = hget.execute(&backend);
+    //     assert_eq!(result, BulkString::new("value").into());
+    //     Ok(())
+    // }
 }

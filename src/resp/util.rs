@@ -32,7 +32,7 @@ pub fn find_crlf(buf: &[u8], offset: usize) -> Option<usize> {
 }
 
 //get the length identifier of the signature part of frame
-pub fn parse_length(buf: &[u8], prefix: &str) -> Result<(usize, usize), RespError> {
+pub fn parse_length(buf: &[u8], prefix: &str) -> Result<(usize, isize), RespError> {
     let end = extract_simple_frame_data(buf, prefix)?;
     let s = String::from_utf8_lossy(&buf[prefix.len()..end]);
     Ok((end, s.parse()?))
@@ -134,11 +134,14 @@ mod tests {
     fn test_calc_total_length() -> anyhow::Result<()> {
         let buf = b"*2\r\n$3\r\nget\r\n$5\r\nhello\r\n";
         let (end, length) = parse_length(buf, "*").unwrap();
+        let length = length as usize;
+
         let total = calc_total_length(buf, end, length, "*").unwrap();
         assert_eq!(total, buf.len());
 
         let buf = b"*2\r\n$3\r\nget\r\n";
         let (end, length) = parse_length(buf, "*").unwrap();
+        let length = length as usize;
         let res = calc_total_length(buf, end, length, "*");
         assert_eq!(res.unwrap_err(), RespError::NotComplete);
         Ok(())

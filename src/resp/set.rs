@@ -22,6 +22,8 @@ impl RespDecode for RespSet {
 
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
         let (end, len) = parse_length(buf, Self::PREFIX)?;
+        let len = len as usize;
+
         let total_len = calc_total_length(buf, end, len, Self::PREFIX)?;
         if buf.len() < total_len {
             return Err(RespError::NotComplete);
@@ -37,6 +39,8 @@ impl RespDecode for RespSet {
 
     fn expect_length(buf: &[u8]) -> Result<usize, RespError> {
         let (end, len) = parse_length(buf, Self::PREFIX)?;
+        let len = len as usize;
+
         calc_total_length(buf, end, len, Self::PREFIX)
     }
 }

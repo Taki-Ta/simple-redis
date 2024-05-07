@@ -119,15 +119,6 @@ mod tests {
         .await?;
         let new_frame: RespFrame = BulkString::new("world".to_string()).into();
         assert_eq!(response.frame, new_frame);
-
-        // let mut buf = BytesMut::from("");
-        // let frame: RespFrame = RespArray::decode(&mut buf)?.into();
-        // let response = handle_request(RedisRequest {
-        //     frame:frame.clone(),
-        //     backend: backend.clone(),
-        // }).await?;
-        // println!("Response: {:?}", response);
-        // assert_eq!(response.frame,new_frame);
         Ok(())
     }
 }

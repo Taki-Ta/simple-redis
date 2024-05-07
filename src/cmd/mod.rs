@@ -1,13 +1,21 @@
+mod echo;
 mod hmap;
 mod map;
 
-use crate::{backend::Backend, RespArray, RespError, RespFrame, SimpleString};
+use crate::{backend::Backend, BulkString, RespArray, RespError, RespFrame, SimpleString};
 use enum_dispatch::enum_dispatch;
 use lazy_static::lazy_static;
 use thiserror::Error;
 
+use self::{
+    echo::Echo,
+    hmap::{HGet, HGetAll, HMGet, HSet},
+    map::{Get, Set},
+};
+
 lazy_static! {
     static ref REST_OK: RespFrame = SimpleString::new("OK").into();
+    static ref REST_NIL: RespFrame = BulkString::new("").into();
 }
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -34,39 +42,12 @@ pub enum Command {
     HSet(HSet),
     HGetAll(HGetAll),
     UnRecognized(UnRecognized),
-}
-
-#[derive(Debug)]
-pub struct Get {
-    key: String,
-}
-
-#[derive(Debug)]
-pub struct Set {
-    key: String,
-    value: RespFrame,
+    Echo(Echo),
+    HMGet(HMGet),
 }
 
 #[derive(Debug)]
 pub struct UnRecognized;
-
-#[derive(Debug)]
-pub struct HGet {
-    key: String,
-    field: String,
-}
-
-#[derive(Debug)]
-pub struct HSet {
-    key: String,
-    field: String,
-    value: RespFrame,
-}
-
-#[derive(Debug)]
-pub struct HGetAll {
-    key: String,
-}
 
 impl CommandExecutor for UnRecognized {
     fn execute(&self, _backend: &Backend) -> RespFrame {
@@ -92,12 +73,14 @@ impl TryFrom<RespArray> for Command {
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
         match value.first() {
-            Some(RespFrame::BulkString(ref cmd)) => match cmd.as_ref() {
+            Some(RespFrame::BulkString(ref cmd)) => match cmd.to_ascii_lowercase().as_slice() {
                 b"get" => Get::try_from(value).map(Command::Get),
                 b"set" => Set::try_from(value).map(Command::Set),
                 b"hget" => HGet::try_from(value).map(Command::HGet),
                 b"hset" => HSet::try_from(value).map(Command::HSet),
                 b"hgetall" => HGetAll::try_from(value).map(Command::HGetAll),
+                b"echo" => Echo::try_from(value).map(Command::Echo),
+                b"hmget" => HMGet::try_from(value).map(Command::HMGet),
                 _ => Ok(UnRecognized.into()),
             },
             _ => Err(CommandError::InvalidCommand(

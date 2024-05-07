@@ -1,15 +1,26 @@
 use crate::{
-    backend::Backend, extract_args, validate_command, CommandError, CommandExecutor, Get,
-    RespArray, RespFrame, Set,
+    backend::Backend, extract_args, validate_command, CommandError, CommandExecutor, RespArray,
+    RespFrame,
 };
 
-use super::REST_OK;
+use super::{REST_NIL, REST_OK};
+
+#[derive(Debug)]
+pub struct Get {
+    key: String,
+}
+
+#[derive(Debug)]
+pub struct Set {
+    key: String,
+    value: RespFrame,
+}
 
 impl CommandExecutor for Get {
     fn execute(&self, backend: &Backend) -> RespFrame {
         match backend.get(&self.key) {
             Some(value) => value,
-            None => REST_OK.clone(),
+            None => REST_NIL.clone(),
         }
     }
 }
