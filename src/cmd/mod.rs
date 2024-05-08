@@ -101,8 +101,9 @@ pub fn validate_command(
     value: &RespArray,
     names: &[&'static str],
     expect_len: usize,
+    comparator: impl Fn(usize, usize) -> bool,
 ) -> Result<(), CommandError> {
-    if value.len() != expect_len + 1 {
+    if !comparator(value.len(), expect_len + 1) {
         return Err(CommandError::InvalidArgument(format!(
             "command {} expected {} arguments",
             names.join(" "),
@@ -131,6 +132,22 @@ pub fn validate_command(
     Ok(())
 }
 
+pub fn validate_command_exact_length(
+    value: &RespArray,
+    names: &[&'static str],
+    expect_len: usize,
+) -> Result<(), CommandError> {
+    validate_command(value, names, expect_len, |v, e| v == e)
+}
+
+pub fn validate_command_minimum_length(
+    value: &RespArray,
+    names: &[&'static str],
+    expect_len: usize,
+) -> Result<(), CommandError> {
+    validate_command(value, names, expect_len, |v, e| v >= e)
+}
+
 pub fn extract_args(value: RespArray) -> Result<Vec<RespFrame>, CommandError> {
     Ok(value.0.into_iter().skip(1).collect::<Vec<RespFrame>>())
 }
@@ -146,7 +163,7 @@ mod tests {
             BulkString::new("get".as_bytes().to_vec()).into(),
             BulkString::new("hello".as_bytes().to_vec()).into(),
         ]);
-        assert!(validate_command(&frames, &["get"], 1).is_ok());
+        assert!(validate_command_exact_length(&frames, &["get"], 1).is_ok());
 
         let frames = RespArray::new(vec![
             BulkString::new("set".as_bytes().to_vec()).into(),
@@ -154,7 +171,7 @@ mod tests {
             BulkString::new("world".as_bytes().to_vec()).into(),
         ]);
         assert_eq!(
-            validate_command(&frames, &["set"], 1).unwrap_err(),
+            validate_command_exact_length(&frames, &["set"], 1).unwrap_err(),
             CommandError::InvalidArgument("command set expected 1 arguments".to_string())
         );
     }

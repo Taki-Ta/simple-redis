@@ -1,6 +1,6 @@
 use crate::{
-    backend::Backend, extract_args, validate_command, CommandError, CommandExecutor, RespArray,
-    RespFrame,
+    backend::Backend, extract_args, validate_command_exact_length, CommandError, CommandExecutor,
+    RespArray, RespFrame,
 };
 
 use super::{REST_NIL, REST_OK};
@@ -37,7 +37,7 @@ impl TryFrom<RespArray> for Get {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["get"], 1)?;
+        validate_command_exact_length(&value, &["get"], 1)?;
         let args = extract_args(value)?;
         match &args[0] {
             RespFrame::BulkString(key) => Ok(Get {
@@ -53,7 +53,7 @@ impl TryFrom<RespArray> for Set {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["set"], 2)?;
+        validate_command_exact_length(&value, &["set"], 2)?;
         let mut args = extract_args(value)?.into_iter();
         match (args.next(), args.next()) {
             (Some(RespFrame::BulkString(key)), Some(value)) => Ok(Set {

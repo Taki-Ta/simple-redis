@@ -1,6 +1,6 @@
 use crate::{
-    extract_args, validate_command, Backend, BulkString, CommandError, CommandExecutor, RespArray,
-    RespFrame,
+    extract_args, validate_command_exact_length, Backend, BulkString, CommandError,
+    CommandExecutor, RespArray, RespFrame,
 };
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ impl TryFrom<RespArray> for Echo {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["echo"], 1)?;
+        validate_command_exact_length(&value, &["echo"], 1)?;
         let args = extract_args(value)?;
         match &args[0] {
             RespFrame::BulkString(key) => Ok(Echo {

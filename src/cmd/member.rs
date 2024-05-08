@@ -1,5 +1,6 @@
 use crate::{
-    extract_args, validate_command, Backend, CommandError, CommandExecutor, RespArray, RespFrame,
+    extract_args, validate_command_exact_length, validate_command_minimum_length, Backend,
+    CommandError, CommandExecutor, RespArray, RespFrame,
 };
 
 #[derive(Debug)]
@@ -34,7 +35,7 @@ impl TryFrom<RespArray> for Sadd {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["sadd"], 3)?;
+        validate_command_minimum_length(&value, &["sadd"], 3)?;
         let mut args = extract_args(value)?.into_iter();
         let key = args.next();
         let members: Vec<String> = args
@@ -60,7 +61,7 @@ impl TryFrom<RespArray> for SISMember {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["sismember"], 2)?;
+        validate_command_exact_length(&value, &["sismember"], 2)?;
         let mut args = extract_args(value)?.into_iter();
         match (args.next(), args.next()) {
             (Some(RespFrame::BulkString(key)), Some(RespFrame::BulkString(field))) => {

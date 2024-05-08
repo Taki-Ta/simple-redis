@@ -1,6 +1,6 @@
 use crate::{
-    backend::Backend, extract_args, validate_command, BulkString, CommandError, CommandExecutor,
-    RespArray, RespFrame,
+    backend::Backend, extract_args, validate_command_exact_length, validate_command_minimum_length,
+    BulkString, CommandError, CommandExecutor, RespArray, RespFrame,
 };
 
 use super::{REST_NIL, REST_OK};
@@ -80,7 +80,7 @@ impl TryFrom<RespArray> for HGet {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["hget"], 2)?;
+        validate_command_exact_length(&value, &["hget"], 2)?;
         let mut args = extract_args(value)?.into_iter();
         match (args.next(), args.next()) {
             (Some(RespFrame::BulkString(key)), Some(RespFrame::BulkString(field))) => Ok(HGet {
@@ -97,7 +97,7 @@ impl TryFrom<RespArray> for HSet {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["hset"], 3)?;
+        validate_command_exact_length(&value, &["hset"], 3)?;
         let mut args = extract_args(value)?.into_iter();
         match (args.next(), args.next(), args.next()) {
             (Some(RespFrame::BulkString(key)), Some(RespFrame::BulkString(field)), Some(value)) => {
@@ -116,7 +116,7 @@ impl TryFrom<RespArray> for HGetAll {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["hgetall"], 1)?;
+        validate_command_minimum_length(&value, &["hgetall"], 1)?;
         let mut args = extract_args(value)?.into_iter();
         match args.next() {
             Some(RespFrame::BulkString(key)) => Ok(HGetAll {
@@ -131,7 +131,7 @@ impl TryFrom<RespArray> for HMGet {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        validate_command(&value, &["hmget"], 3)?;
+        validate_command_minimum_length(&value, &["hmget"], 3)?;
         let mut args = extract_args(value)?.into_iter();
         let key = args.next();
         let fields: Vec<String> = args
