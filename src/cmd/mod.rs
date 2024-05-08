@@ -1,6 +1,7 @@
 mod echo;
 mod hmap;
 mod map;
+mod member;
 
 use crate::{backend::Backend, BulkString, RespArray, RespError, RespFrame, SimpleString};
 use enum_dispatch::enum_dispatch;
@@ -11,6 +12,7 @@ use self::{
     echo::Echo,
     hmap::{HGet, HGetAll, HMGet, HSet},
     map::{Get, Set},
+    member::{SISMember, Sadd},
 };
 
 lazy_static! {
@@ -44,6 +46,8 @@ pub enum Command {
     UnRecognized(UnRecognized),
     Echo(Echo),
     HMGet(HMGet),
+    SADD(Sadd),
+    SISMEMBER(SISMember),
 }
 
 #[derive(Debug)]
@@ -72,6 +76,7 @@ impl TryFrom<RespArray> for Command {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
+        println!("receive : {:?}", value);
         match value.first() {
             Some(RespFrame::BulkString(ref cmd)) => match cmd.to_ascii_lowercase().as_slice() {
                 b"get" => Get::try_from(value).map(Command::Get),
@@ -81,6 +86,8 @@ impl TryFrom<RespArray> for Command {
                 b"hgetall" => HGetAll::try_from(value).map(Command::HGetAll),
                 b"echo" => Echo::try_from(value).map(Command::Echo),
                 b"hmget" => HMGet::try_from(value).map(Command::HMGet),
+                b"sadd" => Sadd::try_from(value).map(Command::SADD),
+                b"sismember" => SISMember::try_from(value).map(Command::SISMEMBER),
                 _ => Ok(UnRecognized.into()),
             },
             _ => Err(CommandError::InvalidCommand(

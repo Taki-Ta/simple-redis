@@ -131,19 +131,7 @@ impl TryFrom<RespArray> for HMGet {
     type Error = CommandError;
 
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        if value.len() < 3 {
-            return Err(CommandError::InvalidArgument(
-                "ERR wrong number of arguments for command".to_string(),
-            ));
-        }
-        if let RespFrame::BulkString(ref cmd) = value.first().unwrap() {
-            if cmd.as_ref() != b"hmget" {
-                return Err(CommandError::InvalidCommand(format!(
-                    "expected hmget got {}",
-                    String::from_utf8_lossy(cmd.as_ref())
-                )));
-            }
-        }
+        validate_command(&value, &["hmget"], 3)?;
         let mut args = extract_args(value)?.into_iter();
         let key = args.next();
         let fields: Vec<String> = args
@@ -237,32 +225,39 @@ mod tests {
         Ok(())
     }
 
-    // #[test]
-    // fn test_hmget_hset_command_execute(){
-    //     let backend = Backend::new();
-    //     let hset = HSet {
-    //         key: "key".to_string(),
-    //         field: "field".to_string(),
-    //         value: BulkString::new("value").into(),
-    //     };
-    //     let result = hset.execute(&backend);
-    //     assert_eq!(result, REST_OK.clone());
+    #[test]
+    fn test_hmget_hset_command_execute() -> Result<()> {
+        let backend = Backend::new();
+        let hset = HSet {
+            key: "key".to_string(),
+            field: "field".to_string(),
+            value: BulkString::new("value").into(),
+        };
+        let result = hset.execute(&backend);
+        assert_eq!(result, REST_OK.clone());
 
-    //     let hset = HSet {
-    //         key: "key".to_string(),
-    //         field: "field1".to_string(),
-    //         value: BulkString::new("value1").into(),
-    //     };
-    //     let result = hset.execute(&backend);
-    //     assert_eq!(result, REST_OK.clone());
+        let hset = HSet {
+            key: "key".to_string(),
+            field: "field1".to_string(),
+            value: BulkString::new("value1").into(),
+        };
+        let result = hset.execute(&backend);
+        assert_eq!(result, REST_OK.clone());
 
-    //     let HMGet=
-    //     let hget = HMGet {
-    //         key: "key".to_string(),
-    //         field: "field".to_string(),
-    //     };
-    //     let result = hget.execute(&backend);
-    //     assert_eq!(result, BulkString::new("value").into());
-    //     Ok(())
-    // }
+        let hmget = HMGet {
+            key: "key".to_string(),
+            fields: Vec::from(["field".to_string(), "field1".to_string()]),
+        };
+        let result = hmget.execute(&backend);
+        let array = RespArray::new(
+            [
+                BulkString::new("value".to_string()).into(),
+                BulkString::new("value1".to_string()).into(),
+            ]
+            .to_vec(),
+        )
+        .into();
+        assert_eq!(result, array);
+        Ok(())
+    }
 }

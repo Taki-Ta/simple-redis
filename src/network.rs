@@ -16,6 +16,7 @@ pub async fn stream_handler(stream: TcpStream, backend: Backend) -> Result<()> {
                 let request = RedisRequest { frame, backend };
                 let response = handle_request(request).await?;
                 println!("Send response: {:?}", response);
+                println!("msg is {:?}", &response.clone().frame);
                 framed.send(response.frame).await?;
             }
             Some(Err(e)) => {
@@ -37,7 +38,7 @@ pub async fn handle_request(request: RedisRequest) -> Result<RedisResponse> {
 #[derive(Debug)]
 pub struct RespFrameCodec;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RedisResponse {
     frame: RespFrame,
 }

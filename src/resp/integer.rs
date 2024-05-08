@@ -4,8 +4,7 @@ use bytes::BytesMut;
 
 impl RespEncode for i64 {
     fn encode(self) -> Vec<u8> {
-        let sign = if self < 0 { "" } else { "+" };
-        format!(":{}{}\r\n", sign, self).into_bytes()
+        format!(":{}\r\n", self).into_bytes()
     }
 }
 
@@ -40,7 +39,7 @@ mod tests {
     #[test]
     fn test_integer_encode() {
         let s: RespFrame = 100.into();
-        assert_eq!(s.encode(), b":+100\r\n");
+        assert_eq!(s.encode(), b":100\r\n");
         let s: RespFrame = (-100).into();
         assert_eq!(s.encode(), b":-100\r\n");
     }
