@@ -1,8 +1,7 @@
 use crate::{backend::Backend, CommandExecutor, RespDecode, RespEncode, RespError, RespFrame};
 use anyhow::Result;
-use futures::SinkExt;
+use futures::{SinkExt,StreamExt};
 use tokio::net::TcpStream;
-use tokio_stream::StreamExt;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 use tracing::info;
 
